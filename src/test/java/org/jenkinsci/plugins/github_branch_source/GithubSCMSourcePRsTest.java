@@ -120,9 +120,9 @@ public class GithubSCMSourcePRsTest extends GitSCMSourceBase {
     }
 
     @Test
-    public void testOpenSinglePRThrowsFileNotFoundOnObserve() throws Exception {
+    public void testOpenSinglePRHandlesFileNotFoundOnObserve() throws Exception {
         // Situation: Hitting the Github API for a PR and an FileNotFound exception during the
-        // getPullRequest
+        // getPullRequest.getUser() - this should now be handled gracefully
         githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/pulls/1"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json; charset=utf-8")
@@ -145,7 +145,7 @@ public class GithubSCMSourcePRsTest extends GitSCMSourceBase {
         GHRepository repoSpy = Mockito.spy(repo);
         GHPullRequest pullRequestSpy = Mockito.spy(repoSpy.getPullRequest(1));
         Mockito.when(repoSpy.getPullRequest(1)).thenReturn(pullRequestSpy);
-        // then throw on the PR during observe
+        // then throw on the PR during observe - this simulates bot users like 'Copilot'
         Mockito.when(pullRequestSpy.getUser()).thenThrow(new FileNotFoundException("User not found"));
         GitHubSCMSourceRequest request =
                 context.newRequest(new GitHubSCMSource("cloudbeers", "yolo", null, false), null);
@@ -153,15 +153,12 @@ public class GithubSCMSourcePRsTest extends GitSCMSourceBase {
                 .new LazyPullRequests(request, repoSpy)
                 .iterator();
 
-        // Expected: In the iterator will have one item in it but when getting that item you receive an
-        // FileNotFound exception
+        // Expected: In the iterator will have one item in it and when getting that item it should 
+        // continue processing despite the FileNotFoundException for the user
         assertTrue(pullRequestIterator.hasNext());
-        try {
-            pullRequestIterator.next();
-            fail();
-        } catch (Exception e) {
-            assertEquals("java.io.FileNotFoundException: User not found", e.getMessage());
-        }
+        GHPullRequest result = pullRequestIterator.next();
+        assertNotNull("PR should be returned even when user lookup fails", result);
+        assertEquals("PR number should match", 1, result.getNumber());
     }
 
     @Test
