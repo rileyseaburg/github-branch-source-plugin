@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - master
+
+jobs:
+  release:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+          
+      - name: Build and package
+        run: |
+          mvn clean package -DskipTests -Dmaven.test.skip=true
+        env:
+          MAVEN_OPTS: "-Xmx1024m"
+        
+      - name: Get version from pom.xml
+        id: get_version
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+          
+      - name: Check if artifacts exist
+        run: |
+          if [ ! -f "target/github-branch-source.hpi" ]; then
+            echo "Error: HPI file not found"
+            exit 1
+          fi
+          if [ ! -f "target/github-branch-source.jar" ]; then
+            echo "Error: JAR file not found"
+            exit 1
+          fi
+          echo "Artifacts found:"
+          ls -la target/github-branch-source.*
+          
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.get_version.outputs.version }}
+          name: Release v${{ steps.get_version.outputs.version }}
+          body: |
+            Release of GitHub Branch Source Plugin v${{ steps.get_version.outputs.version }}
+            
+            This release disables bot filtering to allow builds from GitHub Copilot Agent and other bot users.
+            
+            ## Installation
+            Download the `github-branch-source.hpi` file and install it in your Jenkins instance.
+            
+            ## Changes
+            - Disabled bot user filtering to allow bot-initiated builds
+            - Added verification tests for bot filtering behavior
+            - Maintained backward compatibility with existing functionality
+            
+            ## Artifacts
+            - `github-branch-source.hpi` - Jenkins plugin file for installation
+            - `github-branch-source.jar` - Compiled JAR file
+          draft: false
+          prerelease: false
+          files: |
+            target/github-branch-source.hpi
+            target/github-branch-source.jar
