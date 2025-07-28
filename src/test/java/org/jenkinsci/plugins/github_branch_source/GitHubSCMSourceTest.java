@@ -411,10 +411,20 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
             byName.put(h.getKey().getName(), h.getKey());
             revByName.put(h.getKey().getName(), h.getValue());
         }
-        assertThat(byName.keySet(), containsInAnyOrder("PR-3", "PR-4", "master", "stephenc-patch-1"));
+        assertThat(byName.keySet(), containsInAnyOrder("PR-2", "PR-3", "PR-4", "master", "stephenc-patch-1"));
 
-        // PR-2 fails to find user and throws file not found for user.
-        // Caught and handled by removing PR-2 but scan continues.
+        // PR-2 has a bad user but should still be processed with the fix for bot PRs
+        assertThat(byName.get("PR-2"), instanceOf(PullRequestSCMHead.class));
+        assertThat(((SCMHeadOrigin.Fork) byName.get("PR-2").getOrigin()).getName(), is("notauser"));
+        assertThat(((PullRequestSCMHead) byName.get("PR-2")).isMerge(), is(true));
+        assertThat(
+                revByName.get("PR-2"),
+                is(new PullRequestSCMRevision(
+                        (PullRequestSCMHead) (byName.get("PR-2")),
+                        "8f1314fc3c8284d8c6d5886d473db98f2126071c",
+                        "c0e024f89969b976da165eecaa71e09dc60c3da1",
+                        "38814ca33833ff5583624c29f305be9133f27a40")));
+        ((PullRequestSCMRevision) revByName.get("PR-2")).validateMergeHash();
 
         assertThat(byName.get("PR-3"), instanceOf(PullRequestSCMHead.class));
         assertThat(((SCMHeadOrigin.Fork) byName.get("PR-3").getOrigin()).getName(), is("stephenc"));
