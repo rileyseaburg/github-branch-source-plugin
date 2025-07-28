@@ -2600,12 +2600,31 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         // looked up this user already
                         user = users.get(user.getLogin());
                     }
-                    ContributorMetadataAction contributor =
-                            new ContributorMetadataAction(user.getLogin(), user.getName(), user.getEmail());
+                    
+                    // Handle potential API failures for bot users gracefully
+                    String login = user.getLogin();
+                    String name = null;
+                    String email = null;
+                    
+                    try {
+                        name = user.getName();
+                    } catch (GHFileNotFoundException e) {
+                        // Bot users like 'Copilot' may not have accessible name details
+                        LOGGER.log(Level.FINE, "Could not fetch name for user {0} in PR #{1}", new Object[]{login, number});
+                    }
+                    
+                    try {
+                        email = user.getEmail();
+                    } catch (GHFileNotFoundException e) {
+                        // Bot users like 'Copilot' may not have accessible email details
+                        LOGGER.log(Level.FINE, "Could not fetch email for user {0} in PR #{1}", new Object[]{login, number});
+                    }
+                    
+                    ContributorMetadataAction contributor = new ContributorMetadataAction(login, name, email);
                     pullRequestContributorCache.put(number, contributor);
                     // store the populated user record now that we have it
                     users.put(user.getLogin(), user);
-                } catch (FileNotFoundException e) {
+                } catch (GHFileNotFoundException e) {
                     // If user not found (like bot users such as 'Copilot'), log it but continue processing.
                     LOGGER.log(Level.WARNING, "Could not resolve author for PR #{0}. Continuing without user details.", number);
                     request.listener()
