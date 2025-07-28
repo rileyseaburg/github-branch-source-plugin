@@ -1003,6 +1003,30 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             @CheckForNull SCMHeadEvent<?> event,
             @NonNull final TaskListener listener)
             throws IOException, InterruptedException {
+        
+        // Bot filtering logic - commented out to allow builds from bot users
+        /*
+        if (event instanceof SCMHeadEvent && event.getPayload() != null) {
+            // Check if the event is from a bot sender to prevent build loops
+            // This would require access to GitHub payload sender information
+            try {
+                // This is a placeholder for bot detection logic that would examine
+                // the event payload for sender type information
+                // if ("Bot".equals(payload.getSender().getType())) {
+                //     SCMHeadEvent.setPayload(
+                //             (SCMHeadEvent) event,
+                //             new BotExcludedSCMHeadEvent(
+                //                     (SCMHeadEvent) event,
+                //                     Messages._GitHubSCMSource_BotSender()
+                //             )
+                //     );
+                // }
+            } catch (Exception e) {
+                // Ignore errors in bot detection to prevent breaking normal operation
+            }
+        }
+        */
+        
         // In case we are in an Organization Scan - i.e. (observer instanceof SCMHeadObserver.Any) - use the cached
         // credentials
         // https://github.com/jenkinsci/branch-api-plugin/blob/2.1169.va_f810c56e895/src/main/java/jenkins/branch/MultiBranchProjectFactory.java#L262
