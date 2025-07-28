@@ -2606,13 +2606,14 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     // store the populated user record now that we have it
                     users.put(user.getLogin(), user);
                 } catch (FileNotFoundException e) {
-                    // If file not found for user, warn but keep going
+                    // If user not found (like bot users such as 'Copilot'), log it but continue processing.
+                    LOGGER.log(Level.WARNING, "Could not resolve author for PR #{0}. Continuing without user details.", number);
                     request.listener()
                             .getLogger()
                             .format(
-                                    "%n  Could not find user %s for pull request %d.%n",
-                                    user == null ? "null" : user.getLogin(), number);
-                    throw new WrappedException(e);
+                                    "  Could not resolve author for PR #%d. Continuing without user details.%n",
+                                    number);
+                    // Leave user as null and continue processing - do not throw exception
                 } catch (IOException e) {
                     throw new WrappedException(e);
                 }
