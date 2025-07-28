@@ -30,7 +30,7 @@
   </scm>
 
   <properties>
-    <changelist>1.0.0-bot-fix-1</changelist>
+    <changelist>1.0.1</changelist>
     <gitHubRepo>rileyseaburg/${project.artifactId}-plugin</gitHubRepo>
     <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
